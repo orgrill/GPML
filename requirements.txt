@@ -1,0 +1,2 @@
+gpytorch == 1.10
+torch == 2.10

@@ -7,9 +7,9 @@ clearvars -except CWS_DEM
 close all
 
 % Path for external (non Mathworks) functions and data loading commands
-addpath("C:\Users\alanj\Documents\research\ArcticMappingToolbox");
-addpath("C:\Users\alanj\Documents\research\kmz2struct");
-addpath('C:\Users\alanj\Documents\research\Gaussian Process Regression(GPR)\gpml-matlab-v4.2-2018-06-11\cov');
+addpath("toolbox\ArcticMappingToolbox");
+addpath("toolbox\kmz2struct");
+addpath('toolbox\Gaussian Process Regression(GPR)\gpml-matlab-v4.2-2018-06-11\cov');
 
 % These two python functions are set up to perform interpolation, one is
 % gridded, one is scattered
@@ -19,10 +19,10 @@ py.importlib.reload(mod);
 % py.importlib.reload(mod2);
 
 % Loading data
-load("C:\Users\alanj\Documents\research\CWS_SNAP_TMAX.mat");
-%load('C:\Users\alanj\Documents\research\CWS_DEM.mat')
-WS_Data = load("C:\Users\alanj\Documents\research\CWS_StationData.mat");
-load("C:\Users\alanj\Documents\research\CWS_Projection.mat");
+load("data\CWS_SNAP_TMAX.mat");
+%load('data\CWS_DEM.mat')
+WS_Data = load("data\CWS_StationData.mat");
+load("data\CWS_Projection.mat");
 SubRegion = kmz2struct('CopperRiverWatershed.kmz');
 %% Getting everything into the same coordinate frame
 % GCM (SNAP) Data is in polar stereographic, lets move it to lat/long, then
@@ -38,7 +38,7 @@ SubRegion = kmz2struct('CopperRiverWatershed.kmz');
 % [CWS_SNAP_Rect] = MovetoRectilinear_Interpolate(SNAPx,SNAPy,CWS_SNAPData);
 % save('CWS_SNAP_Rect','CWS_SNAP_Rect');
 % We only have to do this once, so it is best to save the result, then load
-load("C:\Users\alanj\Documents\research\CWS_SNAP_Rect.mat")
+load("data\CWS_SNAP_Rect.mat")
 states = shaperead('usastatehi.shp','UseGeoCoords',true);
 alaska = states(2,:);
 alaska = geoshape(alaska);
@@ -101,7 +101,7 @@ py.importlib.import_module('torch');
 %% Calculate Elevation Parameters for Downscaled Grid
 % % Elevations at the downsampled Grid (This cuts the edges quite a bit)
 % This requires you to load CWS_DEM, which is big, so I downsampled it and
-load("C:\Users\alanj\Documents\research\CWS_SNAP_Fine.mat")
+load("data\CWS_SNAP_Fine.mat")
 CWS_SNAP_Down.Elevation = CWS_SNAP_Fine.Elevation;  % We get a bunch of NANs near the borders
 clear CWS_SNAP_Fine;
 % figure
@@ -110,10 +110,10 @@ clear CWS_SNAP_Fine;
 % mapshow(CWS_SNAP_Down.Xgrid,CWS_SNAP_Down.Ygrid,CWS_SNAP_Down.Elevation,'DisplayType','surface','FaceAlpha',1);
 %% Split into test and fit sets, set up and execute EQM and topgraphical downscaling
 % Load the raw station data, we need to divide this into two parts, 80/20
-load("C:\Users\alanj\Documents\research\AllStationData.mat")
+load("data\AllStationData.mat")
 % FitSet = sort(randperm(size(AllStationData,1),round(.8*size(AllStationData,1))));
 % Load a particular test/train split, the interpolation is really slow
-load ("C:\Users\alanj\Documents\research\FitSet.mat")
+load ("data\FitSet.mat")
 % Fit the Topographical Downscaling parameters (White 2016)
 [StationDownScaleParams] = GSML_Topo_Downscale(AllStationData, FitSet); %[T0; Beta; Gamma; zref]
 TestSet = sort(setdiff(1:length(StationX),FitSet));
@@ -205,13 +205,13 @@ TheseDays = CWS_SNAP_Rect.Days(CWS_SNAP_Rect.Days<=datetime(2019,12,31));
 logical_Index = ismember(CWS_SNAP_Rect.Days,TheseDays);
 TheseDaysIndex = find(logical_Index);
 %SNAP_Ref_Test2 = InterpolateSNAP(SNAP_Rect_Rot,CWS_SNAP_Rect.t2ref,test_x,TheseDaysIndex);
-load("C:\Users\alanj\Documents\research\SNAP_Ref_Test2.mat"); % This is the reference WRF, interpolated to the fine grid
+load("data\SNAP_Ref_Test2.mat"); % This is the reference WRF, interpolated to the fine grid
 
 
-load("C:\Users\alanj\Documents\research\SNAP_NONRef_FutureTest.mat"); % This is raw WRF data interpolated to stations, into the future
+load("data\SNAP_NONRef_FutureTest.mat"); % This is raw WRF data interpolated to stations, into the future
 SNAP_NONRef_FutureTest = SNAP_NONRef_Test;
 SNAP_NONRef_FutureTestDays = SNAP_NONRef_TestDay;
-load("C:\Users\alanj\Documents\research\SNAP_NONRef_Test.mat")
+load("data\SNAP_NONRef_Test.mat")
 SNAP_NONRef_TestDay = CWS_SNAP_Rect.Days(TheseDaysIndex);
 % Get rid of the NAN leap days
 EliminateLeap = find(~(month(SNAP_NONRef_TestDay)==2 & day(SNAP_NONRef_TestDay)==29));
@@ -233,10 +233,10 @@ test_x = [StationX(FitSet) StationY(FitSet)];
 % logical_Index = ismember(CWS_SNAP_Rect.Days,TheseDays);
 % TheseDaysIndex = find(logical_Index);
 % SNAP_Ref_Fit2 = InterpolateSNAP(SNAP_Rect_Rot,CWS_SNAP_Rect.t2ref,test_x,TheseDaysIndex);
-load("C:\Users\alanj\Documents\research\SNAP_Ref_Fit.mat")
+load("data\SNAP_Ref_Fit.mat")
 
 % SNAP_NONRef_FitDay = CWS_SNAP_Rect.Days(TheseDaysIndex);
-load("C:\Users\alanj\Documents\research\SNAP_NONRef_Fit.mat")
+load("data\SNAP_NONRef_Fit.mat")
 % Get rid of the leap days
 EliminateLeap = find(~(month(SNAP_NONRef_FitDay)==2 & day(SNAP_NONRef_FitDay)==29));
 SNAP_NONRef_FitDay = SNAP_NONRef_FitDay(EliminateLeap);
@@ -244,7 +244,7 @@ SNAP_NONRef_Fit = SNAP_NONRef_Fit(:,EliminateLeap);
 SNAP_Ref_Fit = SNAP_Ref_Fit(:,EliminateLeap);
 %% Downsample the SNAP Temps at reference elevation to the Test Stations
 % This is still slow, and is dependent on the Test/Fit split
-load("C:\Users\alanj\Documents\research\SNAP_Ref_Stat.mat") % This also loads SNAP_Ref_Test
+load("data\SNAP_Ref_Stat.mat") % This also loads SNAP_Ref_Test
 SNAP_Ref_TestDays = CWS_SNAP_Rect.Days(SNAPDays_inTest); 
 EliminateLeap = find(~(month(SNAP_Ref_TestDays)==2 & day(SNAP_Ref_TestDays)==29));
 SNAP_Ref_TestDays = SNAP_Ref_TestDays(EliminateLeap);
@@ -255,7 +255,7 @@ SNAP_Ref_Test = SNAP_Ref_Test(:,EliminateLeap);
 %  hold on
 %  plot(CWS_SNAP_Rect.Days(TheseDaysIndex),SNAP_NONRef_Test(1,:));
  %% Downsample Station data at reference elevation to test station locations
- load("C:\Users\alanj\Documents\research\Station_Ref_Test.mat")
+ load("data\Station_Ref_Test.mat")
  Station_Ref_TestDays = FitDays(FitStationDays_inTest);
 
 %% Interpolate Non Ref Training Station Data to test station locations
@@ -266,7 +266,7 @@ TheseDays = CWS_SNAP_Rect.Days(CWS_SNAP_Rect.Days<=datetime(2019,12,31));
 logical_Index = ismember(TestDays,TheseDays);
 TheseDaysIndex = find(logical_Index);
 %Station_NONRef_Test = InterpolateStation(xStationFit,yStationFit_NonRef,test_x,TheseDaysIndex);
-load("C:\Users\alanj\Documents\research\Station_NONRef_Test.mat")
+load("data\Station_NONRef_Test.mat")
 Station_NONRef_TestDays = FitDays(TheseDaysIndex);
 % figure
 % plot(FitDays(FitStationDays_inTest),Station_Ref_Test(1,:));
@@ -410,7 +410,7 @@ SubFitTest = [];
 [~, SubFitTest] = FutureBias(train_x,train_y,test_x_new,SubFitTest,TrainFlag);
 
 % Analysis Contingent on Loading the Python Data
-system('python C:\Users\alanj\Documents\research\GSML_GPGRID.py');
+system('python data\GSML_GPGRID.py');
 load('PythonResults.mat')
 trainXout = double(trainXout);
 trainYout = double(trainYout);
