@@ -1,19 +1,17 @@
 % This script should create the train_x, train_y, test_x data sets and save
 % them as a csv to the shared folder with the ADSAIL machine
-
-
-
 clearvars -except CWS_DEM
 close all
 
 % Path for external (non Mathworks) functions and data loading commands
+addpath("src")
 addpath("toolbox\ArcticMappingToolbox");
 addpath("toolbox\kmz2struct");
 addpath('toolbox\Gaussian Process Regression(GPR)\gpml-matlab-v4.2-2018-06-11\cov');
 
 % These two python functions are set up to perform interpolation, one is
 % gridded, one is scattered
-mod = py.importlib.import_module('GSML_GPGRID'); % If all the training data is on a grid
+mod = py.importlib.import_module('src.GSML_GPGRID'); % If all the training data is on a grid
 py.importlib.reload(mod);
 % mod2 = py.importlib.import_module('GSML_GPBias_TrainPredict');  % Uses kernel interpolation on a grid
 % py.importlib.reload(mod2);
@@ -23,7 +21,7 @@ load("data\CWS_SNAP_TMAX.mat");
 %load('data\CWS_DEM.mat')
 WS_Data = load("data\CWS_StationData.mat");
 load("data\CWS_Projection.mat");
-SubRegion = kmz2struct('CopperRiverWatershed.kmz');
+SubRegion = kmz2struct('data\CopperRiverWatershed.kmz');
 %% Getting everything into the same coordinate frame
 % GCM (SNAP) Data is in polar stereographic, lets move it to lat/long, then
 % to our projection grid
@@ -90,8 +88,7 @@ downGrid = apxGrid('create',SNAP_Rect_Rot,1,[size(SNAPx,1)*factor size(SNAPx,2)*
 [Xdown, Ydown] = meshgrid(downGrid{1}(6:end-5),downGrid{2}(6:end-5));
 %test_x = [reshape(Xdown,[],1) reshape(Ydown,[],1)]; 
 %% Call the Weather Cleaning Function
-WS_Data_Clean = GSML_CleanWeatherStation(WS_Data);
-WS_Data = WS_Data_Clean;
+WS_Data = GSML_CleanWeatherStation(WS_Data);
 % Weather station data is still in Lat/Long, move it to our projection grid
 [StationLL, iA, iC] = unique([[WS_Data{3}], [WS_Data{4}] ],'rows');
 [StationX, StationY] = projfwd(CWS_Projection.ProjectedCRS,StationLL(:,1),StationLL(:,2));
@@ -143,17 +140,17 @@ FitDays = unique(FitDays);  % These are the days present in the fit stations
 %% Downsample the NonRef SNAP Data to the fine grid
 % This is for the spatial check, will probably only work for 1 day, need to
 % change so it works for a range
-TheseDaysIndex = find(CWS_SNAP_Rect.Days==datetime(2085,4,26));
-CWS_SNAP_Down.Tmax = zeros(size(Xdown,1), size(Xdown,2), length(TheseDaysIndex));
-CWS_SNAP_Down.Days = [CWS_SNAP_Rect.Days(TheseDaysIndex) ];
-vectorX = reshape(Xdown,[],1);
-vectorY = reshape(Ydown,[],1);
-for i=1:length(TheseDaysIndex)%:size(CWS_SNAP_Rect.t2max,3)
-     disp(['Downsampling Day ', num2str(i)])
-     InterpOut = InterpolateSNAP(SNAP_Rect_Rot,CWS_SNAP_Rect.t2ref,[vectorX vectorY],TheseDaysIndex);
-     CWS_SNAP_Down.Tmax(:,:,i) = reshape(InterpOut,size(Xdown));
-     
+TheseDaysIndex = find(CWS_SNAP_Rect.Days == datetime(2085, 4, 26));
+CWS_SNAP_Down.Tmax = zeros(size(Xdown, 1), size(Xdown, 2), length(TheseDaysIndex));
+CWS_SNAP_Down.Days = [CWS_SNAP_Rect.Days(TheseDaysIndex)];
+vectorX = reshape(Xdown, [], 1);
+vectorY = reshape(Ydown, [], 1);
+for i = 1:length(TheseDaysIndex)
+    disp(['Downsampling Day ', num2str(i)])
+    InterpOut = InterpolateSNAP(SNAP_Rect_Rot, CWS_SNAP_Rect.t2ref, [vectorX vectorY], TheseDaysIndex);
+    CWS_SNAP_Down.Tmax(:, :, i) = reshape(InterpOut, size(Xdown));
 end
+
 %% Move everything Back, unrotate, and display in the original coordinate frame
 rot = [cos(-theta) -sin(-theta); sin(-theta) cos(-theta)];
 rotXY=[vectorX vectorY]*(rot); 
@@ -182,7 +179,7 @@ mapshow(Xqr,Yqr,CWS_SNAP_Down.Tmax(:,:,1),'DisplayType','surface','FaceAlpha',1)
 %         end
 %     end
 % end
-load('xyStationFit.mat');
+load('data\xyStationFit.mat');
 
 %% Switch to the Test Set
 station_Lengths = cellfun(@length, AllStationData(TestSet,3), 'UniformOutput', false);
@@ -410,7 +407,11 @@ SubFitTest = [];
 [~, SubFitTest] = FutureBias(train_x,train_y,test_x_new,SubFitTest,TrainFlag);
 
 % Analysis Contingent on Loading the Python Data
-system('python data\GSML_GPGRID.py');
+
+%%% Not sure how to do this part correctly %%%
+%%% probably won't work because the py file is working in the Z: path on
+%%% the adsail machine
+system('GSML_GPBias_Remote.py');
 load('PythonResults.mat')
 trainXout = double(trainXout);
 trainYout = double(trainYout);
@@ -613,64 +614,3 @@ caxis manual
 caxis([bottom top]);
 colorbar
 title('EQM DeBiasing, April 26, 2023')
-
-
-%% Function Files
-function [CWS_SNAP_Rect] = MovetoRectilinear_Interpolate(SNAPx,SNAPy,CWS_SNAPData)
-    % Force the SNAP grid to be rectilinear so we can use gridded kernel
-    % interpolation with our GP, this is essentially a regridding (a teeny one), so we should interpolate to find our values at the new grid.   
-    [SNAP_Rect, CWS_SNAP_Rect.lineParams] = CurveGrid2Rect(SNAPx,SNAPy);
-    vectorX = reshape(SNAPx,[],1);
-    vectorY = reshape(SNAPy,[],1);
-    CWS_SNAP_Rect.t2max = zeros(size(SNAPx,1),size(SNAPy,2),size(CWS_SNAPData.t2max,3));
-    for i=1:size(CWS_SNAPData.t2max,3) % Interpolate Each day of temp data to the new grid
-           vectorT = reshape(double(CWS_SNAPData.t2max(:,:,i)),[],1);
-           F = scatteredInterpolant(vectorX,vectorY,vectorT);
-           CWS_SNAP_Rect.t2max(:,:,i) = reshape(F(SNAP_Rect(:,1),SNAP_Rect(:,2)),size(SNAPx,2),size(SNAPx,1))';
-    end
-    CWS_SNAP_Rect.xgrid = reshape(SNAP_Rect(:,1),size(SNAPx,2),size(SNAPx,1))';
-    CWS_SNAP_Rect.ygrid = reshape(SNAP_Rect(:,2),size(SNAPx,2),size(SNAPx,1))';
-    CWS_SNAP_Rect.Days = CWS_SNAPData.Days;
-end
-
-function [DownSampleOut] = InterpolateSNAP(train_x,SNAPTemps,test_x,TheseDays)
-% This Function Downsamples the SNAP data to a set of locations, the xtrain
-% must be gridded! This is called on the local machine
-    % Here is some manual scaling for the grid
-    train_x = train_x./1e6;
-    test_x = test_x./1e6;
-    % Use GpyTorch to krig the temp data 
-    % Move everything to numpy, then to pytorch
-    pyTrainingX = py.torch.from_numpy(py.numpy.array(train_x));
-    pyGrid = py.torch.from_numpy(py.numpy.array(train_x));
-    pyTestX = py.torch.from_numpy(py.numpy.array(test_x));
-    % We need the days in the TestSet
-    DownSampleOut = zeros(size(test_x,1),length(TheseDays));
-    for i=1:length(TheseDays) %:size(CWS_SNAP_Rect.t2max,3)
-         disp(['Downsampling Day ', num2str(i)])
-         train_y = reshape(SNAPTemps(:,:,TheseDays(i)),[],1);
-         pyTrainingY = py.torch.from_numpy(py.numpy.array(train_y));
-         outvars = py.GSML_GPGRID.GPGrid(pyTrainingX,pyTrainingY, pyGrid, pyTestX);
-         outcell = cell(outvars);
-         %trainXout = double(outcell{1}.cpu().numpy);
-         %trainYout = double(outcell{2}.cpu().numpy);
-         %testXout = double(outcell{3}.cpu().numpy);
-         testYout = double(outcell{4}.cpu().numpy);
-         %testPred = double(outcell{4}.cpu().numpy);
-         %myparam = py.torch.from_numpy(py.numpy.array(double(outcell{5})));
-         DownSampleOut(1:size(test_x,1),i) = testYout';
-    end
-end
-
-function [DownSampleOut,SubFitSet] = FutureBias(train_x,train_y,test_x,SubFitSet,TrainFlag)
-    if TrainFlag == 1    
-        NumberTrainPoints = 75000;
-        SubFitSet = sort(randperm(size(train_x,1),NumberTrainPoints));
-    end
-    train_x = [train_x(SubFitSet,1) (train_x(SubFitSet,2).*.3048)];
-    train_y = train_y(SubFitSet);
-    test_x(:,1) = test_x(:,1);
-    test_x(:,2) = (test_x(:,2).*.3048);
-    save('Z:\PythonTrainTest','train_x','train_y','test_x','TrainFlag');
-    DownSampleOut = [];
-end
