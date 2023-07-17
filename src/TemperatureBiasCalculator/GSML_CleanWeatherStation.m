@@ -10,7 +10,7 @@ function result = GSML_CleanWeatherStation(WS_Data)
     end
     % Some of the Weather Station Seems to be in K, this technique will
     % miss these                
-    [StationID, ia, ib] = unique([WS_Data{2}]);
+    
     StationID = string(StationID);
     result = cell(1,6);
     PerStation = cell(length(ia),2);

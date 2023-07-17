@@ -1,4 +1,8 @@
-addpath("TemperatureBiasCalculator\")
+addpath("TemperatureBiasCalculator/")
+% addpath("NextStepObject/")
 
 x = TemperatureBiasCalculator;
-x.CalculateBias();
+bias = x.CalculateBias();
+
+% a = NextStepObject;
+% a.DoNextStep(bias);
