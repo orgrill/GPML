@@ -1,5 +1,6 @@
-addpath("TemperatureBiasCalculator/")
-% addpath("NextStepObject/")
+cd("..")
+addpath(fullfile("src", "TemperatureBiasCalculator"))
+
 
 x = TemperatureBiasCalculator;
 bias = x.CalculateBias();

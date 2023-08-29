@@ -2,7 +2,7 @@ function result = GSML_CleanWeatherStation(WS_Data)
     % Clean the weather station data, remove NANs
     % Create a fit curve using the low frequency information (hopefully yearly and slower) 
     % Fix any data mismatch where we have weather data but no GCM data
-    load('data\CWS_StationData.mat', 'WS_Data');
+    load(fullfile("data", "CWS_StationData.mat"), "WS_Data");
     % First Remove any NAN values
     GoodWeatherData = ~isnan([WS_Data{6}]);
     for i=1:length(WS_Data)
@@ -10,7 +10,7 @@ function result = GSML_CleanWeatherStation(WS_Data)
     end
     % Some of the Weather Station Seems to be in K, this technique will
     % miss these                
-    
+    [StationID, ia, ib] = unique([WS_Data{2}]);
     StationID = string(StationID);
     result = cell(1,6);
     PerStation = cell(length(ia),2);

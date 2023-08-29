@@ -1,9 +1,13 @@
-function [Xdown, Ydown, SNAP_Rect_Rot] = CoordinateTransform(ProjectedCRS)
+function [Xdown, Ydown, SNAP_Rect_Rot] = CoordinateTransform(ProjectedCRS, CWS_SNAP_Rect)
+    addpath(fullfile("toolbox", "kmz2struct"));
+    addpath(fullfile("toolbox", "ArcticMappingToolbox"));
+    addpath(fullfile("toolbox", "GPR", "gpml-matlab-v4.2-2018-06-11", "cov"));
+
     % Loading data
-    CWS_SNAPData = load("data\CWS_SNAP_TMAX.mat");
+    CWS_SNAPData = load(fullfile("data", "CWS_SNAP_TMAX.mat")).CWS_SNAPData;
     %load('data\CWS_DEM.mat')
-    WS_Data = load("data\CWS_StationData.mat");
-    SubRegion = kmz2struct('data\CopperRiverWatershed.kmz');
+    WS_Data = load(fullfile("data", "CWS_StationData.mat"));
+    SubRegion = kmz2struct(fullfile("data", "CopperRiverWatershed.kmz"));
     %% Getting everything into the same coordinate frame
     % GCM (SNAP) Data is in polar stereographic, lets move it to lat/long, then
     % to our projection grid
@@ -18,11 +22,12 @@ function [Xdown, Ydown, SNAP_Rect_Rot] = CoordinateTransform(ProjectedCRS)
     % [CWS_SNAP_Rect] = MovetoRectilinear_Interpolate(SNAPx,SNAPy,CWS_SNAPData);
     % save('CWS_SNAP_Rect','CWS_SNAP_Rect');
     % We only have to do this once, so it is best to save the result, then load
-    load("data\CWS_SNAP_Rect.mat")
+    
     states = shaperead('usastatehi.shp','UseGeoCoords',true);
     alaska = geoshape(states(2,:));
     [AKx, AKy] = projfwd(ProjectedCRS,alaska.Latitude,alaska.Longitude);
     AlaskaPoly = polyshape(AKx,AKy);
+    plot(AlaskaPoly,'FaceColor','none');
     %% Rotate
     % We also have to rotate everything, this is not a regridding, just a
     % coordinate transform, we perform the GP regression in the rotated

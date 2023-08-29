@@ -37,11 +37,6 @@ addpath('toolbox\Gaussian Process Regression(GPR)\gpml-matlab-v4.2-2018-06-11\co
 
 
 %%%%%%%%%%%%%%%%%%
-%  TODO %
-%%%%%%%%%%%%%%%%%%
-
-
-%%%%%%%%%%%%%%%%%%
 %  BuildTrainSet %
 %%%%%%%%%%%%%%%%%%
 
@@ -57,7 +52,7 @@ SubFitTest = [];
 %%% probably won't work because the py file is working in the Z: path on
 %%% the adsail machine
 system('GSML_GPBias_Remote.py');
-load('PythonResults.mat')
+load(fullfile("data","PythonResults.mat"))
 trainXout = double(trainXout);
 trainYout = double(trainYout);
 testXout = double(testXout);
@@ -219,7 +214,7 @@ TrainFlag = 0;
 [~, SubFitTest] = FutureBias(train_x,train_y,test_x_new,SubFitTest,TrainFlag);
 disp('Data Built for new test set, run the Python, press a key')
 pause();
-load('Z:\PythonResultsPredict.mat')
+load(fullfile("data", "PythonResultsPredict.mat")
 trainXout = double(trainXout);
 trainYout = double(trainYout);
 testXout = double(testXout);
