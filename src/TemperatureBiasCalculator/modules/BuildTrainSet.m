@@ -1,4 +1,4 @@
-function [train_x, train_y, train_x_new] = BuildTrainSet(AllStationData, SNAP_NONRef_FitDay)
+function [train_x, train_y, train_x_new] = BuildTrainSet(AllStationData, FitSet, SNAP_Ref_Fit, SNAP_NONRef_FitDay, CWS_SNAP_Rect)
     % Build the train set here, have to do all training
     StationBiasTrain = [];
     StationDatesTrain = [];
@@ -7,26 +7,26 @@ function [train_x, train_y, train_x_new] = BuildTrainSet(AllStationData, SNAP_NO
     for i = 1:size(AllStationData(FitSet),2)
         TheseStationTmax = [AllStationData{FitSet(i), 4}];
         
-        StationDay =       [AllStationData{FitSet(i),3}]; % Days that we have station data
+        StationDay = [AllStationData{FitSet(i),3}]; % Days that we have station data
         %StationDay = StationDay(year(StationDay) >= 2000); 
-        AllFitDays =  union(StationDay,SNAP_NONRef_FitDay); % All the days we want to train on (10950:end)
+        AllFitDays = union(StationDay,SNAP_NONRef_FitDay); % All the days we want to train on (10950:end)
         TheseStationElev = [AllStationData{FitSet(i),2}];
         StationZ = mean(AllStationData{FitSet(i),2}).*.3048;
-        [~,WhereinSNAPNONRef, WhereinAllFitDay1] = intersect(SNAP_NONRef_FitDay, AllFitDays);
-        [~,WhereinStationDay, WhereinAllFitDay2] = intersect(StationDay,AllFitDays);    % Where the Station Data is
+        [~, WhereinSNAPNONRef,  WhereinAllFitDay1] = intersect(SNAP_NONRef_FitDay, AllFitDays);
+        [~, WhereinStationDay, WhereinAllFitDay2] = intersect(StationDay, AllFitDays);    % Where the Station Data is
         
-        [StationANDSNAP, ~, ib] = intersect(WhereinAllFitDay1,WhereinAllFitDay2);
-        [~,Instation,InSnap] = intersect(StationDay,SNAP_NONRef_FitDay);
-        SnapTemp = nan(length(AllFitDays),1);
-        SnapTemp(WhereinAllFitDay1) = SNAP_Ref_Fit(i,WhereinSNAPNONRef); 
+        [StationANDSNAP,  ~,  ib] = intersect(WhereinAllFitDay1, WhereinAllFitDay2);
+        [~, Instation, InSnap] = intersect(StationDay, SNAP_NONRef_FitDay);
+        SnapTemp = nan(length(AllFitDays), 1);
+        SnapTemp(WhereinAllFitDay1) = SNAP_Ref_Fit(i, WhereinSNAPNONRef); 
         SnapTemp = SnapTemp-StationDownScaleParams(3)*(StationDownScaleParams(4)-StationZ); % Compare the bias to a topo downscaled!
-        TheseStationTmax=TheseStationTmax-StationDownScaleParams(3)*(StationZ-StationDownScaleParams(4)); % Compare the bias to a topo downscaled!
+        TheseStationTmax = TheseStationTmax - StationDownScaleParams(3) * (StationZ-StationDownScaleParams(4)); % Compare the bias to a topo downscaled!
         StationBiasTrain = [StationBiasTrain; (TheseStationTmax(Instation)-SnapTemp(StationANDSNAP))];
         StationDatesTrain = [StationDatesTrain; StationDay(Instation)];
         StationElevTrain = [StationElevTrain; TheseStationElev(Instation)];
 
     end
-    [~,TrainStationDateIndex] = ismember(StationDatesTrain,CWS_SNAP_Rect.Days);
+    [~, TrainStationDateIndex] = ismember(StationDatesTrain, CWS_SNAP_Rect.Days);
     train_x = [TrainStationDateIndex StationElevTrain];
     train_y = StationBiasTrain;
 
@@ -79,10 +79,10 @@ function [train_x, train_y, train_x_new] = BuildTrainSet(AllStationData, SNAP_NO
         %KnownTestDates = [KnownTestDates; TheseKnownTestDates];
         StationElevTest =  [StationElevTest; ThisStationElev.*ones(length(AllTestDays),1)];
     end
-    [ia,TestStationDateIndex] = ismember(StationDatesTest,CWS_SNAP_Rect.Days);
+    [ia,TestStationDateIndex] = ismember(StationDatesTest, CWS_SNAP_Rect.Days);
     % GTtest_y = StationBiasTest;
     % train_x and train_y come from the file load
     test_x_new = [TestStationDateIndex StationElevTest];
 
-    return %[train_x, train_y, train_x_new]
+    return 
 end

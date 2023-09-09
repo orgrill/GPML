@@ -3,7 +3,10 @@ function [RectGrid, params] = CurveGrid2Rect(pxg, pyg)
     % rectilinear coordinates that are as close as possible in a least squares
     % sense
     numx = size(pxg,1);
-    numy = size(pyg,1);
+    % TODO: I changed this to 2, because our inputs are 21x24 and 21x24
+    %   This was using numx = 21, numy = 21, so the result from kron product was 411x21 instead of 504x21 (causes crash)
+    %   Maybe pyg was supposed to be transformed before calling this function into a 24 x 21 ? 
+    numy = size(pyg,2); 
     bigY = [reshape(pyg',numel(pyg),[]); reshape(pyg',numel(pyg),[])];
     bigX = [reshape(pxg',numel(pxg),[])];
     Ag = zeros(length(bigY),numx+1+numy+1);

@@ -18,24 +18,6 @@ addpath('toolbox\Gaussian Process Regression(GPR)\gpml-matlab-v4.2-2018-06-11\co
 %   Topographical Downscaling       %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%% Reshapes Station Data so its by date, This is ugly and slow
-% Splits the station data into a training and fit set, indexed by date
-% xStationFit = cell(length(FitDays),1);
-% yStationFit = cell(length(FitDays),1);
-% yStationFit_NonRef = cell(length(FitDays),1);
-% for j=1:length(FitDays)
-%     for i=1:size(station_Lengths,1)
-%         this_dayStation = find([AllStationData{FitSet(i),3}]==FitDays(j));
-%         if ~isempty(this_dayStation)
-%             yStationFit{j} = [yStationFit{j}; Tstation_Ref{i}(this_dayStation) ];
-%             xStationFit{j} = [xStationFit{j}; [AllStationData{FitSet(i),5}]];
-%             yStationFit_NonRef{j} = [yStationFit_NonRef{j}; Tstation_NonRef{i}(this_dayStation) ];
-%         end
-%     end
-% end
-%load('data\xyStationFit.mat');
-
-
 %%%%%%%%%%%%%%%%%%
 %  BuildTrainSet %
 %%%%%%%%%%%%%%%%%%
