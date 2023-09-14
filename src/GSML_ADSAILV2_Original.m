@@ -1,8 +1,5 @@
 % This script should create the train_x, train_y, test_x data sets and save
 % them as a csv to the shared folder with the ADSAIL machine
-
-
-
 clearvars -except CWS_DEM
 close all
 
@@ -19,11 +16,11 @@ py.importlib.reload(mod);
 % py.importlib.reload(mod2);
 
 % Loading data
-load("C:\Users\alanj\Documents\research\CWS_SNAP_TMAX.mat");
-%load('C:\Users\alanj\Documents\research\CWS_DEM.mat')
-WS_Data = load("C:\Users\alanj\Documents\research\CWS_StationData.mat");
-load("C:\Users\alanj\Documents\research\CWS_Projection.mat");
-SubRegion = kmz2struct('CopperRiverWatershed.kmz');
+load("data\CWS_SNAP_TMAX.mat");
+%load('data\CWS_DEM.mat')
+WS_Data = load("data\CWS_StationData.mat");
+load("data\CWS_Projection.mat");
+SubRegion = kmz2struct('data\CopperRiverWatershed.kmz');
 %% Getting everything into the same coordinate frame
 % GCM (SNAP) Data is in polar stereographic, lets move it to lat/long, then
 % to our projection grid
@@ -110,7 +107,8 @@ clear CWS_SNAP_Fine;
 % mapshow(CWS_SNAP_Down.Xgrid,CWS_SNAP_Down.Ygrid,CWS_SNAP_Down.Elevation,'DisplayType','surface','FaceAlpha',1);
 %% Split into test and fit sets, set up and execute EQM and topgraphical downscaling
 % Load the raw station data, we need to divide this into two parts, 80/20
-load("C:\Users\alanj\Documents\research\AllStationData.mat")
+load("C:\Users\alanj\Documents\gpml\data\AllStationData.mat")
+
 % FitSet = sort(randperm(size(AllStationData,1),round(.8*size(AllStationData,1))));
 % Load a particular test/train split, the interpolation is really slow
 load ("C:\Users\alanj\Documents\research\FitSet.mat")
@@ -316,7 +314,14 @@ for i=1:length(TestSet)
     SNAP_FutureDeBias_NonRef(i,:) = SNAP_FutureDeBias_Ref(i,:)-StationDownScaleParams(3)*(StationZ-StationDownScaleParams(4));
 end
 
-%% We need a trainx, trainy set to pass into the pre-trained model
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% This is the end of the pre-processing of data and EQM method, everything
+% beyond this point is for the GP or retrieving outputs from the EQM method
+% for plots
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% This builds everything needed to run a GP for Training (trainx and trainy)
+% We need a trainx, trainy set to pass into the pre-trained model
 
 % Build the train set here, have to do all training
 StationBiasTrain = [];
@@ -350,7 +355,7 @@ train_x = [TrainStationDateIndex StationElevTrain];
 train_y = StationBiasTrain;
 
 
-%%
+%% This builds everything needed to run a GP on Test Days
 % Test all the station locations all the way into the future
 StationBiasTest = [];
 StationDatesTest = [];
@@ -417,26 +422,39 @@ trainYout = double(trainYout);
 testXout = double(testXout);
 testYout = double(testYout);
 
-%% RMSE Code  
+%% RMSE Code
+% Since we are using for loops here, I am initializing everything ahead of
+% time, the key index here is ia into StationDatesTest, ia is set back on 
+% line 399, we are looking for the days that we have Station Data (ground
+% truth), that are in the test set, and also in the WRF dataset
 GPBiasTestDays = StationDatesTest(ia);
-GP_DeBias = cell(length(TestSet),1);
-GP_DeBiasDays = cell(length(TestSet),1);
-WhereinStationDay = cell(length(TestSet),1);
-GT_Bias = cell(length(TestSet),1);
-GPDeBiasError = cell(length(TestSet),1);
-EQMBias = cell(length(TestSet),1);
-for i=1:length(TestSet)
-    TheseStationTmax = [AllStationData{TestSet(i), 4}];
-    StationDay =       [AllStationData{TestSet(i),3}];
+% Begin initialize
+GP_DeBias = cell(length(TestSet),1);     % Debiased temperatures in the test set, from GP
+GP_DeBiasDays = cell(length(TestSet),1); % Dates that correspond to those GP debiased temps
+WhereinStationDay = cell(length(TestSet),1); % I think this is legacy and is unused
+GT_Bias = cell(length(TestSet),1);       % This is the Station Data in the test set used to find the bias
+GPDeBiasError = cell(length(TestSet),1); % Mismatch between GP predicted error and GT error
+EQMBias = cell(length(TestSet),1);       % EQM method bias 
+% end Initialize
+% Also referenced in here are: 
+%   WhereinALLTestDay1: Where the past SNAP_NONRef is
+%   WhereinALLTestDay2: Where the future SNAP_NONRef is
+%   WhereinALLTestDay3: Where the Station Data is
+%   SNAP_Ref_Test2: SNAP data at reference elevation with leap days cut out
+%   SNAP_NONRef_FutureTest: This is raw WRF data interpolated to station
+%                           locations at future dates
+for i=1:length(TestSet) % Loop over every station in the test set
+    TheseStationTmax = [AllStationData{TestSet(i), 4}]; % This stations temperatures
+    StationDay =       [AllStationData{TestSet(i),3}]; % Dates for this station
     %StationDay = StationDay(year(StationDay) >= 2000); 
-    ThisGPBias = testYout(WhichFitStation==i);
+    ThisGPBias = testYout(WhichFitStation==i); % TestYout comes from the Python script, GP results
     [StationANDSNAP, ~, ~] = intersect(WhereinAllTestDay1{i},WhereinAllTestDay3{i});
     [~,Instation,~] = intersect(StationDay,SNAP_NONRef_TestDay);
     [~,Instation2,InSnapDeBias] = intersect(StationDay,SNAP_Ref_TestDays);
-    SnapTemp = nan(length(ThisGPBias),1);
+    SnapTemp = nan(length(ThisGPBias),1); % Initilize as nan, then fill in
     SnapTemp(WhereinAllTestDay1{i}) = SNAP_Ref_Test2(i,WhereinSNAPNONRef{i}); 
     SnapTemp(WhereinAllTestDay2{i}) = SNAP_NONRef_FutureTest(i,WhereinSNAPFuture{i});
-    StationZ = mean(AllStationData{FitSet(i),2}).*.3048;
+    StationZ = mean(AllStationData{FitSet(i),2}).*.3048; % Elevation converted to meters
     
     SnapTemp = SnapTemp-StationDownScaleParams(3)*(StationDownScaleParams(4)-StationZ);
     GP_DeBias{i} = (SnapTemp+ThisGPBias')-StationDownScaleParams(3)*(StationZ-StationDownScaleParams(4));
@@ -450,7 +468,7 @@ for i=1:length(TestSet)
     end
     
 end
-
+% Use all the corresponding errors to calculate RMSE 
 ALLGTBias = cell2mat(GT_Bias);
 EQM_All = cell2mat(EQMBias);
 EQM_RMSE = sqrt(sum(EQM_All.^2)/length(EQM_All));
@@ -578,7 +596,7 @@ trainXout = double(trainXout);
 trainYout = double(trainYout);
 testXout = double(testXout);
 testYout = double(testYout);
-
+%%
 NewBias = nan(length(TestStationDateIndex),1);
 NewBias(ValidRange) = testYout;
 GP_DeBias = reshape(NewBias, size(Xdown,1), []);

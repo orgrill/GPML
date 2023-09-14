@@ -13,5 +13,8 @@ function [] = main(Skip_Transform)
 
     % Construct a bias calculator 
     x = TemperatureBiasCalculator(AllStationData, CWS_Projection, CWS_SNAPData, Skip_Transform);
-    rsme = x.CalculateBias();
+    gp_rmse = x.CalculateBias("Gaussian");
+    disp("rmse from Gaussian Process: ");
+    disp(gp_rmse);
+    eqm_rmse = x.CalculateBias("EQM");
 end

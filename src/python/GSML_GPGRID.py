@@ -105,7 +105,7 @@ def GPGrid(train_x, train_y, grid, test_x):
     #myparam = [model.covar_module.base_kernel.lengthscale.item(), model.likelihood.noise.item()]
     
     
-    return train_x,train_y,test_x,pred_labels
+    return train_x, train_y, test_x, pred_labels
 # =============================================================================
 # # Define a plotting function
 # def ax_plot(f, ax, y_labels, title):
