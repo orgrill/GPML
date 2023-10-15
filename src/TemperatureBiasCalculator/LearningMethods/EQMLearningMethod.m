@@ -1,11 +1,11 @@
 classdef EQMLearningMethod
-    methods
-        function EQM_RMSE = Run(self, AllStationData, CWS_Projection, SNAP_Rect, SNAP_Rect_Rotated, FitSet, ...
+    methods (Static)
+        function EQM_RMSE = Run(AllStationData, CWS_Projection, SNAP_Rect, SNAP_Rect_Rotated, FitSet, ...
                                 FitSet_Days, TestSet, TestSet_Days, StationDownScaleParams, SNAP_Ref_FutureTest, ... 
                                 SNAP_Ref_FutureTestDays, WhereinAllTestDay1, WhereinAllTestDay3)
-
+                %%%% Original date = 2019, 12, 31 %%%%%%%
+                %%% changing to anything other than the day 12/31 breaks code (can change to some years w/out breaking)
             selected_days = SNAP_Rect.Days(SNAP_Rect.Days <= datetime(2019, 12, 31));
-            selected_days_index = find(ismember(SNAP_Rect.Days, selected_days));
 
             [StationX, StationY] = projfwd(CWS_Projection.ProjectedCRS, cell2mat(AllStationData(:, 2)), cell2mat(AllStationData(:, 4)));
             test_x = [StationX(FitSet) StationY(FitSet)];
@@ -20,7 +20,8 @@ classdef EQMLearningMethod
             SNAP_Ref_TestDays = SNAP_Rect.Days(shared_days); 
             EliminateLeap = find(~(month(SNAP_Ref_TestDays) == 2 & day(SNAP_Ref_TestDays) == 29));
             SNAP_Ref_TestDays = SNAP_Ref_TestDays(EliminateLeap); 
-            SNAP_Ref_Test = load(fullfile("data", "SNAP_Ref_Stat.mat")).SNAP_Ref_Test(:, EliminateLeap);
+            SNAP_Ref_Test = load(fullfile("data", "SNAP_Ref_Stat.mat")).SNAP_Ref_Test;
+            SNAP_Ref_Test = SNAP_Ref_Test(:, EliminateLeap);
 
             % Get SNAP_NONRef_Test
             SNAP_NONRef_TestDays = SNAP_Rect.Days(find(ismember(SNAP_Rect.Days, selected_days)));
@@ -82,16 +83,31 @@ classdef EQMLearningMethod
                 StationDay = [AllStationData{TestSet(i), 3}];
                 [StationANDSNAP, ~, ~] = intersect(WhereinAllTestDay1{i}, WhereinAllTestDay3{i});
                 [~, Instation2, InSnapDeBias] = intersect(StationDay, SNAP_NONRef_TestDays);
-                StationANDSNAP
                 if ~isempty(StationANDSNAP)
                     EQMBias{i} = TheseStationTmax(Instation2) - SNAP_DeBias_NonRef(i, InSnapDeBias)';
                 end
                 
             end
 
+            
+
             % TODO: EQMBias contains some NaNs at this point, causing the RMSE to become NaN
-            EQM_All = cell2mat(EQMBias);
-            EQM_RMSE = sqrt(sum(EQM_All.^2)/length(EQM_All));
+            %EQM_All = cell2mat(EQMBias);
+            %EQM_RMSE = sqrt(sum(EQM_All.^2)/length(EQM_All));
+            
+
+            %checking for nan values and removing to calc RMSE
+            nanIndices = cellfun(@(x) any(isnan(x)), EQMBias);
+
+            EQMBias = EQMBias(~nanIndices)
+            if isempty(EQMBias)
+                EQM_RMSE = NaN; 
+            else
+                
+                EQM_All = cell2mat(EQMBias);
+                EQM_RMSE = sqrt(sum(EQM_All.^2) / length(EQM_All));
+            end
+
         end
     end
 end

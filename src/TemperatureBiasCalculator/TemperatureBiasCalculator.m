@@ -26,6 +26,8 @@ classdef TemperatureBiasCalculator
         SNAP_Ref_FutureTest 
         SNAP_Ref_FutureTestDays
         SNAP_NONRef_FutureTest 
+        SNAP_NONRef_FutureTestDays
+        SNAP_NONRef_Test
         SNAP_NONRef_TestDays
 
         WhereinSNAPNONRef
@@ -111,7 +113,7 @@ classdef TemperatureBiasCalculator
             % TODO: Where does this data come from? Can we compute it manually instead of loading from file?
             NONRef_FutureTest = load(fullfile("data", "SNAP_NONRef_FutureTest.mat")); 
             EliminateLeap = find(~(month(NONRef_FutureTest.SNAP_NONRef_TestDay) == 2 & day(NONRef_FutureTest.SNAP_NONRef_TestDay) == 29));
-            SNAP_NONRef_FutureTestDays = NONRef_FutureTest.SNAP_NONRef_TestDay(EliminateLeap);
+            self.SNAP_NONRef_FutureTestDays = NONRef_FutureTest.SNAP_NONRef_TestDay(EliminateLeap);
             self.SNAP_NONRef_FutureTest = NONRef_FutureTest.SNAP_NONRef_Test(:, EliminateLeap);
 
             %% We want the SNAP Data in the future at the reference elevation so we can apply the EQM to it,  
@@ -142,19 +144,18 @@ classdef TemperatureBiasCalculator
             self.StationElevTest = [];
             self.WhichFitStation = [];
             for i = 1:size(self.AllStationData(self.TestSet), 2)
-                TheseStationTmax = [self.AllStationData{self.TestSet(i), 4}];
                 StationDay = [self.AllStationData{self.TestSet(i), 3}]; % Days that we have station data
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                 % Here is where we choose the days to evaluate on, they are all at the
                 % test locations
                 %StationDay = StationDay(year(StationDay) >= 2000); 
-                AllTestDays = union(StationDay,SNAP_NONRef_FutureTestDays); % All the days we want to test
+                AllTestDays = union(StationDay, self.SNAP_NONRef_FutureTestDays); % All the days we want to test
                 %AllTestDays = union(StationDay,SNAP_NONRef_FutureTestDays([1 end]));
                 %AllTestDays = SNAP_NONRef_FutureTestDays;
                 %AllTestDays = [StationDay];
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                 [~,self.WhereinSNAPNONRef{i}, self.WhereinAllTestDay1{i}] = intersect(self.SNAP_NONRef_TestDays, AllTestDays); % Where the old SNAP_NONRef is
-                [~,self.WhereinSNAPFuture{i}, self.WhereinAllTestDay2{i}] = intersect(SNAP_NONRef_FutureTestDays, AllTestDays); % Where the future SNAP is
+                [~,self.WhereinSNAPFuture{i}, self.WhereinAllTestDay2{i}] = intersect(self.SNAP_NONRef_FutureTestDays, AllTestDays); % Where the future SNAP is
                 [~,self.WhereinStationDay{i}, self.WhereinAllTestDay3{i}] = intersect(StationDay, AllTestDays);    % Where the Station Data is
 
                 ThisStationElev = mean([self.AllStationData{self.TestSet(i), 2}]); % Elevation of station i
