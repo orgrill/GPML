@@ -1,19 +1,21 @@
-function result = GSML_CleanWeatherStation(WS_Data)
+function WS_Data_Clean = GSML_CleanWeatherStation(WS_Data)
     % Clean the weather station data, remove NANs
     % Create a fit curve using the low frequency information (hopefully yearly and slower) 
     % Fix any data mismatch where we have weather data but no GCM data
-
+    load('data\CWS_StationData.mat', 'WS_Data');
     % First Remove any NAN values
     GoodWeatherData = ~isnan([WS_Data{6}]);
     for i=1:length(WS_Data)
         WS_Data{i} = WS_Data{i}(GoodWeatherData);
     end
+
     % Some of the Weather Station Seems to be in K, this technique will
     % miss these                
     [StationID, ia, ib] = unique([WS_Data{2}]);
     StationID = string(StationID);
-    result = cell(1,6);
+    WS_Data_Clean = cell(1,6);
     PerStation = cell(length(ia),2);
+
     for i=1:length(StationID)
         theseMeas = find(ib==i);
         PerStation{i} = {WS_Data{1}(theseMeas), WS_Data{6}(theseMeas)};
@@ -21,6 +23,7 @@ function result = GSML_CleanWeatherStation(WS_Data)
         OrigIndex = theseMeas(idx);
         TheseDays = daysact(PerStation{i}{1}(idx(1))-1, PerStation{i}{1}(idx));
         DesiredF = 1:TheseDays(end);
+        
         X_fast = (nufft(PerStation{i}{2}(idx),TheseDays, (0:(length(DesiredF)-1))/length(DesiredF)));
 %             figure
 %             plot(TheseDays,PerStation{i}{2}(idx))
@@ -29,6 +32,7 @@ function result = GSML_CleanWeatherStation(WS_Data)
             myHz = m./(N*1);
 %             figure
 %             plot(myHz,abs((X_fast)),'.-') 
+
         % Find the largest non-dc component, should be yearlyish, then take all frequencies slower than that 
         [~, MainFreq] = maxk(abs(X_fast(2:end-1)),2);
         FreqMap = zeros(length(X_fast),1);
@@ -46,7 +50,7 @@ function result = GSML_CleanWeatherStation(WS_Data)
 %             figure
 %             plot(TheseDays,ZTemp)
         % Now Rebuild the WS_Data object
-        result(i,:) = {WS_Data{1}(OrigIndex(GoodTemp)) ,WS_Data{2}(OrigIndex(GoodTemp)), WS_Data{3}(OrigIndex(GoodTemp)),WS_Data{4}(OrigIndex(GoodTemp)),WS_Data{5}(OrigIndex(GoodTemp)), WS_Data{6}(OrigIndex(GoodTemp))}; 
+        WS_Data_Clean(i,:) = {WS_Data{1}(OrigIndex(GoodTemp)) ,WS_Data{2}(OrigIndex(GoodTemp)), WS_Data{3}(OrigIndex(GoodTemp)),WS_Data{4}(OrigIndex(GoodTemp)),WS_Data{5}(OrigIndex(GoodTemp)), WS_Data{6}(OrigIndex(GoodTemp))}; 
     end
-    result = [{cat(1,result{:,1})},{cat(1,result{:,2})},{cat(1,result{:,3})},{cat(1,result{:,4})},{cat(1,result{:,5})},{cat(1,result{:,6})}];
+    WS_Data_Clean = [{cat(1,WS_Data_Clean{:,1})},{cat(1,WS_Data_Clean{:,2})},{cat(1,WS_Data_Clean{:,3})},{cat(1,WS_Data_Clean{:,4})},{cat(1,WS_Data_Clean{:,5})},{cat(1,WS_Data_Clean{:,6})}];
 end

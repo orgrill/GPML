@@ -76,7 +76,7 @@ classdef TemperatureBiasCalculator
             % Perform the rest of the setup
             self = self.DataSetup();
 
-            % TODO: Unused?
+            % TODO:
             %SubRegion = kmz2struct(fullfile("data", "CopperRiverWatershed.kmz"));
 
             % TODO: What is this

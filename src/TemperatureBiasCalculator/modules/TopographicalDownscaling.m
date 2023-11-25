@@ -1,5 +1,4 @@
 function SNAP_Downscaled = TopographicalDownscaling(AllStationData, SNAP_Rect, SNAP_Rect_Rot, StationDownScaleParams)
-    %%
     %% Calculate Elevation Parameters for Downscaled Grid
     % % Elevations at the downsampled Grid (This cuts the edges quite a bit)
     % This requires you to load CWS_DEM, which is big, so I downsampled it and

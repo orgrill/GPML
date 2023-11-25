@@ -2,7 +2,6 @@ function result = GSML_Topo_Downscale(AllStationData, FitSet)
 % GSML_Topographical_Downscaling
 % Do all the linear regression fitting for a random set of weather stations from
 % AllStationData
-
     station_Lengths = cellfun(@length, AllStationData(FitSet,3), 'UniformOutput', false);
     Tstation_LT = zeros(length(station_Lengths),1);
     stationXcoord = zeros(length(station_Lengths),1);
@@ -18,6 +17,4 @@ function result = GSML_Topo_Downscale(AllStationData, FitSet)
     %stationElev = cell2mat(AllStationData(FitSet,2));
     T0BetaGamma = [ones(size(Tstation_LT)) stationXcoord stationElev]\Tstation_LT;
     result = [T0BetaGamma; mean(stationElev)];
-
-
 end

@@ -89,8 +89,7 @@ classdef EQMLearningMethod
                 
             end
 
-            
-
+    
             % TODO: EQMBias contains some NaNs at this point, causing the RMSE to become NaN
             %EQM_All = cell2mat(EQMBias);
             %EQM_RMSE = sqrt(sum(EQM_All.^2)/length(EQM_All));
@@ -99,7 +98,7 @@ classdef EQMLearningMethod
             %checking for nan values and removing to calc RMSE
             nanIndices = cellfun(@(x) any(isnan(x)), EQMBias);
 
-            EQMBias = EQMBias(~nanIndices)
+            EQMBias = EQMBias(~nanIndices);
             if isempty(EQMBias)
                 EQM_RMSE = NaN; 
             else
